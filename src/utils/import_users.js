@@ -36,12 +36,19 @@ async function readXML(filePath) {
 }
 
 async function insertUsers(users) {
-    await mongoose.connect(config.MONGODB_URI);
-    for (const user of users) {
+  await mongoose.connect(config.MONGODB_URI);
+  for (const user of users) {
       const processedUser = processUser(user);
-      await User.updateOne({ id: processedUser.id }, processedUser, { upsert: true });
-    }
-    await mongoose.disconnect();
+      const existingUser = await User.findOne({ id: processedUser.id });
+      if (existingUser) {
+          // Si el usuario ya existe, actualizamos en lugar de insertar
+          await User.updateOne({ id: processedUser.id }, processedUser);
+      } else {
+          // Si el usuario no existe, lo insertamos
+          await User.create(processedUser);
+      }
+  }
+  await mongoose.disconnect();
 }
 
 async function main() {
